@@ -37,6 +37,35 @@ template = (Path(__file__).with_name("template.txt")).read_text(encoding="utf-8"
 system = (Path(__file__).with_name("system.txt")).read_text(encoding="utf-8")
 
 
+def is_sensitive(content: str) -> bool:
+    """Optionally check content without making availability depend on the API.
+
+    The upstream project called a third-party endpoint unconditionally and
+    treated network errors as sensitive content. That could silently remove
+    the day's only recommendation. The check is now opt-in and fail-open.
+    """
+
+    enabled = os.environ.get("ENABLE_SENSITIVE_CHECK", "false").strip().lower()
+    if enabled not in {"1", "true", "yes", "on"}:
+        return False
+
+    try:
+        response = requests.post(
+            "https://spam.dw-dengwei.workers.dev",
+            json={"text": content},
+            timeout=5,
+        )
+        if response.status_code == 200:
+            return bool(response.json().get("sensitive", False))
+        print(
+            f"Sensitive check failed with status {response.status_code}; allowing content.",
+            file=sys.stderr,
+        )
+    except Exception as error:
+        print(f"Sensitive check error: {error}; allowing content.", file=sys.stderr)
+    return False
+
+
 def has_concrete_experiment_result(abstract: str) -> bool:
     """Conservatively detect whether an abstract states an experimental result."""
 
@@ -61,29 +90,6 @@ def parse_args():
     return parser.parse_args()
 
 def process_single_item(chain, item: Dict, language: str) -> Dict:
-    def is_sensitive(content: str) -> bool:
-        """
-        调用 spam.dw-dengwei.workers.dev 接口检测内容是否包含敏感词。
-        返回 True 表示触发敏感词，False 表示未触发。
-        """
-        try:
-            resp = requests.post(
-                "https://spam.dw-dengwei.workers.dev",
-                json={"text": content},
-                timeout=5
-            )
-            if resp.status_code == 200:
-                result = resp.json()
-                # 约定接口返回 {"sensitive": true/false, ...}
-                return result.get("sensitive", True)
-            else:
-                # 如果接口异常，默认不触发敏感词
-                print(f"Sensitive check failed with status {resp.status_code}", file=sys.stderr)
-                return True
-        except Exception as e:
-            print(f"Sensitive check error: {e}", file=sys.stderr)
-            return True
-
     def check_github_code(content: str) -> Dict:
         """提取并验证 GitHub 链接"""
         code_info = {}

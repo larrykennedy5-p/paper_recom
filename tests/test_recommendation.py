@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import Mock, patch
 
-from ai.enhance import has_concrete_experiment_result
+from ai.enhance import has_concrete_experiment_result, is_sensitive
 from recommendation.direction import score_direction
 from recommendation.quality import assess_quality
 from recommendation.selector import enrich_and_select
@@ -171,6 +172,20 @@ class ExperimentGuardTests(unittest.TestCase):
                 "Experiments show a 12% improvement in grasp success."
             )
         )
+
+
+class SensitiveCheckTests(unittest.TestCase):
+    @patch("ai.enhance.requests.post")
+    def test_check_is_disabled_by_default(self, post: Mock):
+        with patch.dict("os.environ", {}, clear=True):
+            self.assertFalse(is_sensitive("robot manipulation abstract"))
+        post.assert_not_called()
+
+    @patch("ai.enhance.requests.post", side_effect=RuntimeError("network unavailable"))
+    def test_enabled_check_fails_open(self, post: Mock):
+        with patch.dict("os.environ", {"ENABLE_SENSITIVE_CHECK": "true"}, clear=True):
+            self.assertFalse(is_sensitive("robot manipulation abstract"))
+        post.assert_called_once()
 
 
 if __name__ == "__main__":
