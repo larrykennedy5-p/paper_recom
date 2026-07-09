@@ -643,6 +643,15 @@ main {
   overflow: visible;
 }
 
+.paper-card-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.paper-card-title a:hover {
+  color: var(--primary-color);
+}
+
 .paper-card-authors {
   font-size: 14px;
   color: var(--text-secondary);
@@ -673,6 +682,37 @@ main {
   margin-bottom: 6px;
 }
 
+.recommendation-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.quality-badge,
+.direction-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.quality-badge {
+  color: #7b4a00;
+  background: #fff3cd;
+  border: 1px solid #f0d58a;
+}
+
+.direction-badge {
+  color: var(--primary-color);
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid var(--border-accent);
+}
+
 .category-tag {
   font-size: 12px;
   padding: 2px 8px;
@@ -700,6 +740,32 @@ main {
   background-color: rgba(102, 126, 234, 0.05);
   padding: 12px;
   border-radius: 6px;
+}
+
+.reading-card-section {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg-color);
+}
+
+.reading-card-section h4 {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.reading-card-section p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.reading-card-reason {
+  border-left: 4px solid var(--primary-color);
+  background-color: rgba(102, 126, 234, 0.05);
 }
 
 .paper-card-footer {

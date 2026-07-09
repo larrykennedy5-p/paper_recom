@@ -1,4 +1,13 @@
-Please analyze the following abstract of papers. 
+请分析下面这篇论文，只能使用所给信息，不要泛泛而谈。
 
-Content:
+题目：{title}
+作者：{authors}
+arXiv 分类：{categories}
+备注：{comment}
+摘要：
 {content}
+
+请分别给出：
+1）解决问题：具体任务、现有瓶颈及论文试图解决的关键问题；
+2）核心方法：具体技术路线、模型、感知/控制信号或系统设计；
+3）实验结论：只写摘要明确报告的实验设置、比较、指标和结果。若信息不足，原样写“摘要中未给出充分实验细节”。

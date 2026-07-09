@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field, field_validator
-import re
+from pydantic import BaseModel, Field
 
 class Structure(BaseModel):
-    tldr: str = Field(description="generate a too long; didn't read summary")
-    motivation: str = Field(description="describe the motivation in this paper")
-    method: str = Field(description="method of this paper")
-    result: str = Field(description="result of this paper")
-    conclusion: str = Field(description="conclusion of this paper")
+    problem: str = Field(description="用中文具体说明论文解决的问题及其技术难点")
+    method: str = Field(description="用中文具体说明论文提出的核心方法、模型或系统")
+    experiment: str = Field(
+        description=(
+            "用中文具体说明摘要明确报告的实验设置、指标和结论；"
+            "若摘要没有充分实验结论，必须原样输出“摘要中未给出充分实验细节”"
+        )
+    )

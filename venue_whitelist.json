@@ -1,0 +1,45 @@
+{
+  "quality_levels": {
+    "super_journal": {
+      "label": "超一流期刊",
+      "rank": 3
+    },
+    "top_journal": {
+      "label": "顶级期刊",
+      "rank": 2
+    },
+    "top_conference": {
+      "label": "顶级会议",
+      "rank": 1
+    },
+    "unverified": {
+      "label": "待人工核验",
+      "rank": 0
+    }
+  },
+  "venues": [
+    {"name": "Nature Machine Intelligence", "level": "top_journal", "aliases": ["Nature Machine Intelligence", "Nat. Mach. Intell."]},
+    {"name": "Science Robotics", "level": "top_journal", "aliases": ["Science Robotics", "Sci. Robot."]},
+    {"name": "IEEE Transactions on Robotics", "level": "top_journal", "aliases": ["IEEE Transactions on Robotics", "IEEE T-RO", "T-RO"]},
+    {"name": "The International Journal of Robotics Research", "level": "top_journal", "aliases": ["The International Journal of Robotics Research", "International Journal of Robotics Research", "IJRR"]},
+    {"name": "IEEE Robotics and Automation Letters", "level": "top_journal", "aliases": ["IEEE Robotics and Automation Letters", "RA-L"]},
+    {"name": "IEEE/ASME Transactions on Mechatronics", "level": "top_journal", "aliases": ["IEEE/ASME Transactions on Mechatronics", "Transactions on Mechatronics", "T-Mech"]},
+    {"name": "IEEE Transactions on Automation Science and Engineering", "level": "top_journal", "aliases": ["IEEE Transactions on Automation Science and Engineering", "TASE"]},
+
+    {"name": "Nature", "level": "super_journal", "aliases": ["Nature"]},
+    {"name": "Science", "level": "super_journal", "aliases": ["Science"]},
+    {"name": "Cell", "level": "super_journal", "aliases": ["Cell"]},
+    {"name": "PNAS", "level": "super_journal", "aliases": ["Proceedings of the National Academy of Sciences", "PNAS"]},
+
+    {"name": "ICRA", "level": "top_conference", "aliases": ["IEEE International Conference on Robotics and Automation", "ICRA"]},
+    {"name": "IROS", "level": "top_conference", "aliases": ["IEEE/RSJ International Conference on Intelligent Robots and Systems", "IROS"]},
+    {"name": "RSS", "level": "top_conference", "aliases": ["Robotics: Science and Systems", "Robotics Science and Systems", "RSS"]},
+    {"name": "CoRL", "level": "top_conference", "aliases": ["Conference on Robot Learning", "CoRL"]},
+    {"name": "CVPR", "level": "top_conference", "aliases": ["IEEE/CVF Conference on Computer Vision and Pattern Recognition", "Computer Vision and Pattern Recognition", "CVPR"]},
+    {"name": "ICCV", "level": "top_conference", "aliases": ["IEEE/CVF International Conference on Computer Vision", "International Conference on Computer Vision", "ICCV"]},
+    {"name": "ECCV", "level": "top_conference", "aliases": ["European Conference on Computer Vision", "ECCV"]},
+    {"name": "NeurIPS", "level": "top_conference", "aliases": ["Conference on Neural Information Processing Systems", "Neural Information Processing Systems", "NeurIPS", "NIPS"]},
+    {"name": "ICML", "level": "top_conference", "aliases": ["International Conference on Machine Learning", "ICML"]},
+    {"name": "ICLR", "level": "top_conference", "aliases": ["International Conference on Learning Representations", "ICLR"]}
+  ]
+}

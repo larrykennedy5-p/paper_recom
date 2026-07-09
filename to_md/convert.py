@@ -1,72 +1,61 @@
-import json
+"""Convert the single daily recommendation to a Markdown reading card."""
+
+from __future__ import annotations
+
 import argparse
-import os
-from itertools import count
+import json
+from pathlib import Path
+
+
+def load_jsonl(path: Path) -> list[dict]:
+    with path.open("r", encoding="utf-8") as handle:
+        return [json.loads(line) for line in handle if line.strip()]
+
+
+def output_path(input_path: Path) -> Path:
+    date = input_path.name.split("_AI_enhanced_", 1)[0]
+    return input_path.with_name(f"{date}.md")
+
+
+def render_card(item: dict, template: str) -> str:
+    ai_data = item.get("AI") or {}
+    published = item.get("published") or item.get("updated") or ""
+    year = item.get("year") or (str(published)[:4] if published else "未知")
+    return template.format(
+        title=item.get("title", "未知题目"),
+        authors="、".join(item.get("authors") or ["未知作者"]),
+        source=item.get("source") or "arXiv（待人工核验）",
+        year=year,
+        url=item.get("abs") or item.get("pdf") or "",
+        quality_level=item.get("quality_level", "待人工核验"),
+        venue_status=item.get("venue_status", "待人工核验"),
+        direction_score=item.get("direction_score", 0),
+        recommendation_reason=item.get("recommendation_reason", "暂无"),
+        problem=ai_data.get("problem", "暂无"),
+        method=ai_data.get("method", "暂无"),
+        experiment=ai_data.get("experiment", "摘要中未给出充分实验细节"),
+        research_relation=item.get("research_relation", "暂无"),
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", type=Path, required=True, help="Path to the JSONL file")
+    args = parser.parse_args()
+
+    data = load_jsonl(args.data)
+    template_path = Path(__file__).with_name("paper_template.md")
+    template = template_path.read_text(encoding="utf-8")
+
+    if data:
+        # The AI stage already emits at most one item. Slicing here protects the
+        # one-card contract if a legacy or manually edited file is supplied.
+        markdown = render_card(data[0], template)
+    else:
+        markdown = "# 今日论文推荐\n\n今日抓取结果中没有达到方向匹配条件的论文。\n"
+
+    output_path(args.data).write_text(markdown, encoding="utf-8")
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data", type=str, help="Path to the jsonline file")
-    args = parser.parse_args()
-    data = []
-    preference = os.environ.get('CATEGORIES', 'cs.CV, cs.CL').split(',')
-    preference = list(map(lambda x: x.strip(), preference))
-    def rank(cate):
-        if cate in preference:
-            return preference.index(cate)
-        else:
-            return len(preference)
-
-    with open(args.data, "r") as f:
-        for line in f:
-            data.append(json.loads(line))
-
-    categories = set([item["categories"][0] for item in data])
-    template = open("paper_template.md", "r").read()
-    categories = sorted(categories, key=rank)
-    cnt = {cate: 0 for cate in categories}
-    for item in data:
-        if item["categories"][0] not in cnt.keys():
-            continue
-        cnt[item["categories"][0]] += 1
-
-    markdown = f"<div id=toc></div>\n\n# Table of Contents\n\n"
-    for idx, cate in enumerate(categories):
-        markdown += f"- [{cate}](#{cate}) [Total: {cnt[cate]}]\n"
-
-    idx = count(1)
-    for cate in categories:
-        markdown += f"\n\n<div id='{cate}'></div>\n\n"
-        markdown += f"# {cate} [[Back]](#toc)\n\n"
-        papers = []
-        for item in data:
-            if item["categories"][0] == cate:
-                # Safely access AI fields with default values
-                ai_data = item.get('AI', {})
-                if not ai_data or not isinstance(ai_data, dict):
-                    print(f"Skipping item '{item.get('title', 'Unknown')}' due to missing or invalid AI data")
-                    continue
-                
-                # Check if all required AI fields are present
-                required_fields = ['tldr', 'motivation', 'method', 'result', 'conclusion']
-                if not all(field in ai_data for field in required_fields):
-                    print(f"Skipping item '{item.get('title', 'Unknown')}' due to incomplete AI fields")
-                    continue
-                
-                papers.append(
-                    template.format(
-                        title=item["title"],
-                        authors=",".join(item["authors"]),
-                        summary=item["summary"],
-                        url=item['abs'],
-                        tldr=ai_data.get('tldr', ''),
-                        motivation=ai_data.get('motivation', ''),
-                        method=ai_data.get('method', ''),
-                        result=ai_data.get('result', ''),
-                        conclusion=ai_data.get('conclusion', ''),
-                        cate=item['categories'][0],
-                        idx=next(idx)
-                    )
-                )
-        markdown += "\n\n".join(papers)
-    with open(args.data.split('_')[0] + '.md', "w") as f:
-        f.write(markdown)
+    main()

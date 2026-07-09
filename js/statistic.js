@@ -717,7 +717,7 @@ async function loadPapersByDateRange(startDate, endDate) {
 function parseJsonlData(jsonlText, date) {
   const result = {};
   
-  const lines = jsonlText.trim().split('\n');
+  const lines = jsonlText.split('\n').filter(line => line.trim());
   
   lines.forEach(line => {
     try {
@@ -735,7 +735,8 @@ function parseJsonlData(jsonlText, date) {
         result[primaryCategory] = [];
       }
       
-      const summary = paper.AI && paper.AI.tldr ? paper.AI.tldr : paper.summary;
+      const aiData = paper.AI || {};
+      const summary = paper.recommendation_reason || aiData.problem || paper.summary;
       
       result[primaryCategory].push({
         title: paper.title,
@@ -746,10 +747,10 @@ function parseJsonlData(jsonlText, date) {
         details: paper.summary || '',
         date: date,
         id: paper.id,
-        motivation: paper.AI && paper.AI.motivation ? paper.AI.motivation : '',
-        method: paper.AI && paper.AI.method ? paper.AI.method : '',
-        result: paper.AI && paper.AI.result ? paper.AI.result : '',
-        conclusion: paper.AI && paper.AI.conclusion ? paper.AI.conclusion : ''
+        motivation: aiData.problem || aiData.motivation || '',
+        method: aiData.method || '',
+        result: aiData.experiment || aiData.result || '',
+        conclusion: aiData.conclusion || ''
       });
     } catch (error) {
       console.error('解析JSON行失败:', error, line);

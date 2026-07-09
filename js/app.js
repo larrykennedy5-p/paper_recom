@@ -897,7 +897,7 @@ async function loadPapersByDate(date) {
 function parseJsonlData(jsonlText, date) {
   const result = {};
   
-  const lines = jsonlText.trim().split('\n');
+  const lines = jsonlText.split('\n').filter(line => line.trim());
   
   lines.forEach(line => {
     try {
@@ -915,7 +915,8 @@ function parseJsonlData(jsonlText, date) {
         result[primaryCategory] = [];
       }
       
-      const summary = paper.AI && paper.AI.tldr ? paper.AI.tldr : paper.summary;
+      const aiData = paper.AI || {};
+      const summary = paper.recommendation_reason || aiData.problem || paper.summary;
       
       result[primaryCategory].push({
         title: paper.title,
@@ -926,10 +927,19 @@ function parseJsonlData(jsonlText, date) {
         details: paper.summary || '',
         date: date,
         id: paper.id,
-        motivation: paper.AI && paper.AI.motivation ? paper.AI.motivation : '',
-        method: paper.AI && paper.AI.method ? paper.AI.method : '',
-        result: paper.AI && paper.AI.result ? paper.AI.result : '',
-        conclusion: paper.AI && paper.AI.conclusion ? paper.AI.conclusion : '',
+        source: paper.source || 'arXiv（待人工核验）',
+        year: paper.year || (paper.published ? String(paper.published).slice(0, 4) : '未知'),
+        qualityLevel: paper.quality_level || '待人工核验',
+        venueStatus: paper.venue_status || '待人工核验',
+        directionScore: Number.isFinite(Number(paper.direction_score)) ? Number(paper.direction_score) : 0,
+        recommendationReason: paper.recommendation_reason || '',
+        problem: aiData.problem || aiData.motivation || '',
+        method: aiData.method || '',
+        experiment: aiData.experiment || aiData.result || '摘要中未给出充分实验细节',
+        researchRelation: paper.research_relation || '',
+        motivation: aiData.problem || aiData.motivation || '',
+        result: aiData.experiment || aiData.result || '',
+        conclusion: aiData.conclusion || '',
         code_url: paper.code_url || '',
         code_stars: paper.code_stars || 0,
         code_last_update: paper.code_last_update || ''
@@ -1370,9 +1380,21 @@ function renderPapers() {
     const highlightedTitle = titleSummaryTerms.length > 0 
       ? highlightMatches(paper.title, titleSummaryTerms, 'keyword-highlight') 
       : paper.title;
-    const highlightedSummary = titleSummaryTerms.length > 0 
-      ? highlightMatches(paper.summary, titleSummaryTerms, 'keyword-highlight') 
+    const highlightedSummary = titleSummaryTerms.length > 0
+      ? highlightMatches(paper.summary, titleSummaryTerms, 'keyword-highlight')
       : paper.summary;
+    const highlightedProblem = titleSummaryTerms.length > 0
+      ? highlightMatches(paper.problem || '', titleSummaryTerms, 'keyword-highlight')
+      : paper.problem;
+    const highlightedMethod = titleSummaryTerms.length > 0
+      ? highlightMatches(paper.method || '', titleSummaryTerms, 'keyword-highlight')
+      : paper.method;
+    const highlightedExperiment = titleSummaryTerms.length > 0
+      ? highlightMatches(paper.experiment || '', titleSummaryTerms, 'keyword-highlight')
+      : paper.experiment;
+    const highlightedRelation = titleSummaryTerms.length > 0
+      ? highlightMatches(paper.researchRelation || '', titleSummaryTerms, 'keyword-highlight')
+      : paper.researchRelation;
 
     // 高亮作者（作者过滤 + 文本搜索）
     const authorTerms = [];
@@ -1403,19 +1425,46 @@ function renderPapers() {
       <div class="paper-card-index">${index + 1}</div>
       ${paper.isMatched ? '<div class="match-badge" title="匹配您的搜索条件"></div>' : ''}
       <div class="paper-card-header">
-        <h3 class="paper-card-title">${highlightedTitle}</h3>
+        <h3 class="paper-card-title">
+          <a href="${paper.url}" target="_blank" onclick="event.stopPropagation()">${highlightedTitle}</a>
+        </h3>
         <p class="paper-card-authors">${formattedAuthors}</p>
         <div class="paper-card-categories">
           ${categoryTags}
         </div>
+        <div class="recommendation-meta">
+          <span><strong>来源：</strong>${paper.source}</span>
+          <span><strong>年份：</strong>${paper.year}</span>
+          <span class="quality-badge">${paper.qualityLevel}</span>
+          <span class="direction-badge">方向匹配 ${paper.directionScore}/100</span>
+        </div>
       </div>
       <div class="paper-card-body">
-        <p class="paper-card-summary">${highlightedSummary}</p>
+        <section class="reading-card-section reading-card-reason">
+          <h4>推荐理由</h4>
+          <p>${highlightedSummary}</p>
+        </section>
+        <section class="reading-card-section">
+          <h4>解决问题</h4>
+          <p>${highlightedProblem || '暂无'}</p>
+        </section>
+        <section class="reading-card-section">
+          <h4>核心方法</h4>
+          <p>${highlightedMethod || '暂无'}</p>
+        </section>
+        <section class="reading-card-section">
+          <h4>实验结论</h4>
+          <p>${highlightedExperiment || '摘要中未给出充分实验细节'}</p>
+        </section>
+        <section class="reading-card-section">
+          <h4>和开题方向的关系</h4>
+          <p>${highlightedRelation || '暂无'}</p>
+        </section>
         <div class="paper-card-footer">
           <div class="footer-left">
             <span class="paper-card-date">${formatDate(paper.date)}</span>
           </div>
-          <span class="paper-card-link">Details</span>
+          <a class="paper-card-link" href="${paper.url}" target="_blank" onclick="event.stopPropagation()">论文链接</a>
         </div>
       </div>
     `;
@@ -1477,17 +1526,17 @@ function showPaperDetails(paper, paperIndex) {
     : abstractText;
   
   // 高亮其他部分（如果存在且是摘要的一部分）
-  const highlightedMotivation = paper.motivation && modalTitleTerms.length > 0 
-    ? highlightMatches(paper.motivation, modalTitleTerms, 'keyword-highlight') 
-    : paper.motivation;
+  const highlightedMotivation = paper.problem && modalTitleTerms.length > 0
+    ? highlightMatches(paper.problem, modalTitleTerms, 'keyword-highlight')
+    : paper.problem;
   
   const highlightedMethod = paper.method && modalTitleTerms.length > 0 
     ? highlightMatches(paper.method, modalTitleTerms, 'keyword-highlight') 
     : paper.method;
   
-  const highlightedResult = paper.result && modalTitleTerms.length > 0 
-    ? highlightMatches(paper.result, modalTitleTerms, 'keyword-highlight') 
-    : paper.result;
+  const highlightedResult = paper.experiment && modalTitleTerms.length > 0
+    ? highlightMatches(paper.experiment, modalTitleTerms, 'keyword-highlight')
+    : paper.experiment;
   
   const highlightedConclusion = paper.conclusion && modalTitleTerms.length > 0 
     ? highlightMatches(paper.conclusion, modalTitleTerms, 'keyword-highlight') 
@@ -1504,16 +1553,19 @@ function showPaperDetails(paper, paperIndex) {
       <p><strong>Authors: </strong>${highlightedAuthors}</p>
       <p><strong>Categories: </strong>${categoryDisplay}</p>
       <p><strong>Date: </strong>${formatDate(paper.date)}</p>
-      
-      
-      <h3>TL;DR</h3>
+      <p><strong>来源：</strong>${paper.source}</p>
+      <p><strong>年份：</strong>${paper.year}</p>
+      <p><strong>质量级别：</strong>${paper.qualityLevel}（${paper.venueStatus}）</p>
+      <p><strong>方向匹配：</strong>${paper.directionScore}/100</p>
+
+      <h3>推荐理由</h3>
       <p>${highlightedSummary}</p>
       
       <div class="paper-sections">
-        ${paper.motivation ? `<div class="paper-section"><h4>Motivation</h4><p>${highlightedMotivation}</p></div>` : ''}
-        ${paper.method ? `<div class="paper-section"><h4>Method</h4><p>${highlightedMethod}</p></div>` : ''}
-        ${paper.result ? `<div class="paper-section"><h4>Result</h4><p>${highlightedResult}</p></div>` : ''}
-        ${paper.conclusion ? `<div class="paper-section"><h4>Conclusion</h4><p>${highlightedConclusion}</p></div>` : ''}
+        <div class="paper-section"><h4>解决问题</h4><p>${highlightedMotivation || '暂无'}</p></div>
+        <div class="paper-section"><h4>核心方法</h4><p>${highlightedMethod || '暂无'}</p></div>
+        <div class="paper-section"><h4>实验结论</h4><p>${highlightedResult || '摘要中未给出充分实验细节'}</p></div>
+        <div class="paper-section"><h4>和开题方向的关系</h4><p>${paper.researchRelation || '暂无'}</p></div>
       </div>
       
       ${highlightedAbstract ? `<h3>Abstract</h3><p class="original-abstract">${highlightedAbstract}</p>` : ''}

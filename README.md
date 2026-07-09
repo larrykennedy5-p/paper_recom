@@ -1,4 +1,9 @@
-# 🚀 daily-arXiv-ai-enhanced
+# 每日具身智能与灵巧手高质量论文推荐
+
+本项目基于 `dw-dengwei/daily-arXiv-ai-enhanced` 二次开发。系统每天从
+arXiv 新论文中计算方向匹配度，并按“质量级别 → 方向匹配分 → 发布日期”
+排序，只推荐一篇具身智能、灵巧手、智慧农业机器人操作或水下机器人操作
+相关论文。无法从 arXiv 元数据确认来源的论文一律标为“待人工核验”。
 
 > [!CAUTION]
 > 若您所在法域对学术数据有审查要求，谨慎运行本代码；任何二次分发版本必须履行合规审查（包括但不限于原始论文合规性、AI合规性）义务，否则一切法律后果由下游自行承担。
@@ -7,7 +12,7 @@
 > If your jurisdiction has censorship requirements for academic data, run this code with caution; any secondary distribution version must remove the entrance accessible to China and fulfill the content review obligations, otherwise all legal consequences will be borne by the downstream.
 
 
-This innovative tool transforms how you stay updated with arXiv papers by combining automated crawling with AI-powered summarization.
+原项目的 GitHub Actions 定时任务、data 分支和 GitHub Pages 展示方式保持不变。
 
 
 ## ✨ Key Features
@@ -43,7 +48,7 @@ https://github.com/user-attachments/assets/b25712a4-fb8d-484f-863d-e8da6922f9d7
 
 
 # How to use
-This repo will daily crawl arXiv papers about **cs.CV, cs.GR, cs.CL and cs.AI**, and use **DeepSeek** to summarize the papers in **Chinese**.
+This repo crawls **cs.RO, cs.CV, cs.AI and cs.LG** by default, selects one daily recommendation, and uses the configured LLM to produce a three-part Chinese reading card.
 If you wish to crawl other arXiv categories, use other LLMs, or other languages, please follow the instructions.
 Otherwise, you can watch the video above first and directly use this repo in https://dw-dengwei.github.io/daily-arXiv-ai-enhanced/. Please star it if you like :)
 
@@ -58,7 +63,7 @@ Otherwise, you can watch the video above first and directly use this repo in htt
 5. [Optional] Set a password in `secrets.ACCESS_PASSWORD` if you do not wish others to access your page. (see https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/pull/64)
 6. Go to Variables. Variables are shown as plain text and are used for non-sensitive data
 7. Create the following repository variables:
-   1. `CATEGORIES`: separate the categories with ",", such as "cs.CL, cs.CV"
+   1. `CATEGORIES`: separate the categories with ",", recommended: "cs.RO, cs.CV, cs.AI, cs.LG"
    2. `LANGUAGE`: such as "Chinese" or "English"
    3. `MODEL_NAME`: such as "deepseek-chat"
    4. `EMAIL`: your email for push to GitHub

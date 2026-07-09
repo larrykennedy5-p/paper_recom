@@ -2,6 +2,7 @@ import os
 import json
 import sys
 import re
+from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
 from queue import Queue
@@ -20,12 +21,37 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
-from structure import Structure
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+try:
+    from ai.structure import Structure
+except ModuleNotFoundError:
+    from structure import Structure
+from recommendation import enrich_and_select
 
 if os.path.exists('.env'):
     dotenv.load_dotenv()
-template = open("template.txt", "r").read()
-system = open("system.txt", "r").read()
+template = (Path(__file__).with_name("template.txt")).read_text(encoding="utf-8")
+system = (Path(__file__).with_name("system.txt")).read_text(encoding="utf-8")
+
+
+def has_concrete_experiment_result(abstract: str) -> bool:
+    """Conservatively detect whether an abstract states an experimental result."""
+
+    outcome_pattern = re.compile(
+        r"(results?\s+(?:show|demonstrate|indicate)|"
+        r"(?:experiments?|evaluations?)\s+(?:show|demonstrate|indicate)|"
+        r"outperform|surpass|"
+        r"achiev(?:es|ed)\s+(?:state-of-the-art|superior|competitive|\d)|"
+        r"improv(?:e|es|ed|ement).{0,30}(?:by|over|performance|accuracy|success)|"
+        r"demonstrat(?:e|es|ed)\s+(?:the\s+)?(?:effectiveness|superiority)|"
+        r"\b\d+(?:\.\d+)?\s*(?:%|percent|times|x)\b)",
+        re.IGNORECASE,
+    )
+    return outcome_pattern.search(abstract or "") is not None
+
 
 def parse_args():
     """解析命令行参数"""
@@ -115,19 +141,21 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
         item.update(code_info)
 
     """处理单个数据项"""
-    # Default structure with meaningful fallback values
+    # Keep the output schema aligned with the three sections shown on the card.
     default_ai_fields = {
-        "tldr": "Summary generation failed",
-        "motivation": "Motivation analysis unavailable",
-        "method": "Method extraction failed",
-        "result": "Result analysis unavailable",
-        "conclusion": "Conclusion extraction failed"
+        "problem": "AI 总结生成失败，请根据原摘要人工核验。",
+        "method": "AI 总结生成失败，请根据原摘要人工核验。",
+        "experiment": "摘要中未给出充分实验细节",
     }
     
     try:
         response: Structure = chain.invoke({
-            "language": language,
-            "content": item['summary']
+            "language": "中文",
+            "title": item.get("title", ""),
+            "authors": "、".join(item.get("authors", [])),
+            "categories": "、".join(item.get("categories", [])),
+            "comment": item.get("comment") or "无",
+            "content": item["summary"],
         })
         item['AI'] = response.model_dump()
     except langchain_core.exceptions.OutputParserException as e:
@@ -158,6 +186,11 @@ def process_single_item(chain, item: Dict, language: str) -> Dict:
     for field in default_ai_fields.keys():
         if field not in item['AI']:
             item['AI'][field] = default_ai_fields[field]
+
+    # A second, deterministic guard prevents an LLM from inventing results when
+    # the abstract does not contain any concrete outcome signal.
+    if not has_concrete_experiment_result(item.get("summary", "")):
+        item["AI"]["experiment"] = "摘要中未给出充分实验细节"
 
     # 检查 AI 生成的所有字段
     for v in item.get("AI", {}).values():
@@ -205,11 +238,9 @@ def process_all_items(data: List[Dict], model_name: str, language: str, max_work
                 # Add default AI fields to ensure consistency
                 processed_data[idx] = data[idx]
                 processed_data[idx]['AI'] = {
-                    "tldr": "Processing failed",
-                    "motivation": "Processing failed",
-                    "method": "Processing failed",
-                    "result": "Processing failed",
-                    "conclusion": "Processing failed"
+                    "problem": "AI 总结生成失败，请根据原摘要人工核验。",
+                    "method": "AI 总结生成失败，请根据原摘要人工核验。",
+                    "experiment": "摘要中未给出充分实验细节",
                 }
     
     return processed_data
@@ -239,8 +270,25 @@ def main():
             seen_ids.add(item['id'])
             unique_data.append(item)
 
-    data = unique_data
+    # Score every paper before any LLM call, then spend tokens only on the
+    # single daily recommendation.
+    data = enrich_and_select(unique_data, ROOT_DIR / "venue_whitelist.json")
     print('Open:', args.data, file=sys.stderr)
+    if data:
+        selected = data[0]
+        print(
+            "Selected:",
+            selected.get("id"),
+            selected.get("quality_level"),
+            f"direction_score={selected.get('direction_score')}",
+            file=sys.stderr,
+        )
+    else:
+        print("No direction-relevant paper found; writing an empty recommendation file.", file=sys.stderr)
+
+    if not data:
+        Path(target_file).write_text("", encoding="utf-8")
+        return
     
     # 并行处理所有数据
     processed_data = process_all_items(
